@@ -31,6 +31,7 @@ def generate_launch_description():
         peripherals_package_path = '/home/ubuntu/ros2_ws/src/peripherals'
 
     if camera_type == 'ascamera':
+        print('ascamera launch')
         camera_launch = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(peripherals_package_path, 'launch/include/ascamera.launch.py')),
             launch_arguments={
@@ -61,6 +62,8 @@ def generate_launch_description():
                 ]
             ),
         ])
+
+    # depth_to_scan_launch = 
 
     return LaunchDescription([
         depth_camera_name_arg,

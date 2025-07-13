@@ -6,7 +6,7 @@ from launch import LaunchDescription, LaunchService
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, OpaqueFunction, TimerAction
-
+# test in container
 def launch_setup(context):
     compiled = os.environ['need_compile']
     if compiled == 'True':

@@ -23,7 +23,7 @@ class MapSaveNode(Node):
 
     def save_srv_callback(self, request, response):
         self.get_logger().info('\033[1;32m%s\033[0m' % "save map")
-        os.system('cd ~/ros2_ws/src/slam/maps && ros2 run nav2_map_server map_saver_cli -f "map_01" --ros-args -p map_subscribe_transient_local:=true')
+        os.system('cd ~/ros2_ws/src/slam/maps && ros2 run nav2_map_server map_saver_cli -f "map_0620" --ros-args -p map_subscribe_transient_local:=true')
         return response
 
 def main():

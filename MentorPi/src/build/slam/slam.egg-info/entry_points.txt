@@ -1,2 +1,0 @@
-[console_scripts]
-map_save = slam.map_save:main

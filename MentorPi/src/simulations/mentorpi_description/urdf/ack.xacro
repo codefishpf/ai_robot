@@ -184,7 +184,7 @@
     <axis xyz="0 0 0"/>
   </joint>
 
-  <link name="lidar_frame">
+  <!-- <link name="lidar_frame">
     <inertial>
       <origin rpy="0 0 0" xyz="8.65086433231368E-05 9.02624784523964E-05 -0.0183546134614858"/>
       <mass value="0.0405423044068563"/>
@@ -211,7 +211,7 @@
     <parent link="base_link"/>
     <child link="lidar_frame"/>
     <axis xyz="0 0 0"/>
-  </joint>
+  </joint> -->
   <xacro:include filename="$(find mentorpi_description)/urdf/imu.urdf.xacro"/>
 </robot>
 

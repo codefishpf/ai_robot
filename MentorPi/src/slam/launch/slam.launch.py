@@ -50,7 +50,8 @@ def launch_setup(context):
             'map_frame': map_frame,
             'odom_frame': odom_frame,
             'base_frame': base_frame,
-            'scan_topic': f'{frame_prefix}scan_raw',  # Using scan_raw topic
+            # 'scan_topic': f'{frame_prefix}scan_raw',  # Using scan_raw topic
+            'scan_topic': f'{frame_prefix}scan',  # Using scan_raw topic
             'enable_save': enable_save
         }.items(),
     )

@@ -26,12 +26,15 @@ def launch_setup(context):
     depth_camera_info = '/ascamera/camera_publisher/rgb0/camera_info'.format(topic_prefix)
     rgb_camera_topic = '/ascamera/camera_publisher/rgb0/image'.format(topic_prefix)
     odom_topic = '{}/odom'.format(topic_prefix)
-    scan_topic = '{}/scan_raw'.format(topic_prefix)  
+    # scan_topic = '{}/scan_raw'.format(topic_prefix)  
+    scan_topic = '{}/scan'.format(topic_prefix)  
 
     if compiled == 'True':
         slam_package_path = get_package_share_directory('slam')
+        depthimage_to_laserscan_package_path = get_package_share_directory('depthimage_to_laserscan')
     else:
         slam_package_path = '/home/ubuntu/ros2_ws/src/slam'
+        depthimage_to_laserscan_package_path = '/home/ubuntu/ros2_ws/src/depthimage_to_laserscan'
 
     base_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -53,13 +56,21 @@ def launch_setup(context):
         }.items(),
     )
     
+    depthimage_to_laserscan_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(depthimage_to_laserscan_package_path, 'launch/depthimage_to_laserscan-launch.py')),
+        launch_arguments={
+            'use_sim_time': use_sim_time, 
+        }.items(),
+    )
+
     bringup_launch = GroupAction(
      actions=[
          PushRosNamespace(robot_name),
          base_launch,
          TimerAction(
              period=10.0, 
-             actions=[rtabmap_launch],
+             actions=[rtabmap_launch,depthimage_to_laserscan_launch],
          ),
       ]
     )

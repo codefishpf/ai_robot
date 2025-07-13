@@ -1,4 +1,5 @@
 import os
+import logging
 from ament_index_python.packages import get_package_share_directory
 
 from launch_ros.actions import Node
@@ -10,6 +11,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction, TimerAction, OpaqueFunction
 
 def launch_setup(context):
+    logging.info('launch controller')
     compiled = os.environ['need_compile']
     namespace = LaunchConfiguration('namespace', default='')
     use_namespace = LaunchConfiguration('use_namespace', default='false').perform(context)
@@ -31,8 +33,9 @@ def launch_setup(context):
     imu_frame_arg = DeclareLaunchArgument('imu_frame', default_value=imu_frame)
     frame_prefix_arg = DeclareLaunchArgument('frame_prefix', default_value=frame_prefix)
 
+    logging.info('compiled: %s', compiled)
     if compiled == 'True':
-        peripherals_package_path = get_package_share_directory('peripherals')
+        peripherals_package_path = get_package_share_directory('peripherals') # 外设
         controller_package_path = get_package_share_directory('controller')
     else:
         peripherals_package_path = '/home/ubuntu/ros2_ws/src/peripherals'

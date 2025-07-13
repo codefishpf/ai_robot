@@ -36,10 +36,13 @@ def launch_setup(context):
     namespace = '' if robot_name == '/' else robot_name
     use_sim_time = 'true' if sim == 'true' else 'false'
 
+    print('topic_prefix: {}, frame_prefix: {}'.format(topic_prefix, frame_prefix))
+
     map_frame = '{}map'.format(frame_prefix) if robot_name == master_name else '{}/map'.format(master_name)
     cmd_vel_topic = '{}/controller/cmd_vel'.format(topic_prefix)
-    scan_raw = '{}/scan_raw'.format(topic_prefix)
-    scan_topic = '{}/scan_raw'.format(topic_prefix)
+    # scan_raw = '{}/scan_raw'.format(topic_prefix)
+    # scan_topic = '{}/scan_raw'.format(topic_prefix)
+    scan_topic = '{}/scan'.format(topic_prefix)
     odom_frame = '{}odom'.format(frame_prefix)
     base_frame = '{}base_footprint'.format(frame_prefix)
     lidar_frame = '{}lidar_frame'.format(frame_prefix)
@@ -76,16 +79,16 @@ def launch_setup(context):
         }.items(),
     )
 
-    lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(peripherals_package_path, 'launch/lidar.launch.py')),
-        launch_arguments={
-            'lidar_frame': lidar_frame,
-            'scan_topic': scan_topic,
-            'scan_raw': scan_raw,
-        }.items(),
-        condition=UnlessCondition(use_depth_camera)
-    )
+    # lidar_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         os.path.join(peripherals_package_path, 'launch/lidar.launch.py')),
+    #     launch_arguments={
+    #         'lidar_frame': lidar_frame,
+    #         'scan_topic': scan_topic,
+    #         'scan_raw': scan_raw,
+    #     }.items(),
+    #     condition=UnlessCondition(use_depth_camera)
+    # )
 
     joystick_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(peripherals_package_path, 'launch/joystick_control.launch.py')),
@@ -105,7 +108,7 @@ def launch_setup(context):
             'action_name': action_name,
         }.items(),
     )
-
+    print('disable launch lidar node here')
     return [sim_arg,
             depth_camera_launch, 
             master_name_arg,
@@ -116,7 +119,7 @@ def launch_setup(context):
             action_name_arg,
             controller_launch,
             
-            lidar_launch, 
+            # lidar_launch, 
            
             joystick_control_launch,
             #init_pose_launch,

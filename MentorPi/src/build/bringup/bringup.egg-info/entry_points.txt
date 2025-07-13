@@ -1,2 +1,0 @@
-[console_scripts]
-startup_check = bringup.startup_check:main

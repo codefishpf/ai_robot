@@ -14,7 +14,8 @@ def launch_setup(context):
     map_frame = LaunchConfiguration('map_frame', default='map')
     odom_frame = LaunchConfiguration('odom_frame', default='odom')
     base_frame = LaunchConfiguration('base_frame', default='base_footprint')
-    scan_topic = LaunchConfiguration('scan_topic', default='scan_raw')
+    # scan_topic = LaunchConfiguration('scan_topic', default='scan_raw')
+    scan_topic = LaunchConfiguration('scan_topic', default='scan')
 
     enable_save_arg = DeclareLaunchArgument('enable_save', default_value=enable_save)
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value=use_sim_time)
