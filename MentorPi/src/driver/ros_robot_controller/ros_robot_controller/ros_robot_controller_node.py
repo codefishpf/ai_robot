@@ -19,7 +19,7 @@ from ros_robot_controller_msgs.srv import GetBusServoState, GetPWMServoState
 from ros_robot_controller_msgs.msg import (
     ButtonState, BuzzerState, MotorsState, BusServoState, LedState,
     SetBusServoState, ServosPosition, SetPWMServoState, Sbus, OLEDState,
-    RGBStates, PWMServoState
+    RGBStates, PWMServoState, WheelSpeeds
 )
 
 class RosRobotController(Node):
@@ -37,6 +37,8 @@ class RosRobotController(Node):
         self.IMU_FRAME = self.get_parameter('imu_frame').value
 
         self.imu_pub = self.create_publisher(Imu, '~/imu_raw', 1)
+        self.ultrasonic_pub = self.create_publisher(UInt16, '~/ultrasonic', 1)
+        self.wheel_speeds_pub = self.create_publisher(WheelSpeeds, '~/wheel_speeds', 1)
         self.joy_pub = self.create_publisher(Joy, '~/joy', 1)
         self.sbus_pub = self.create_publisher(Sbus, '~/sbus', 1)
         self.button_pub = self.create_publisher(ButtonState, '~/button', 1)
@@ -104,6 +106,8 @@ class RosRobotController(Node):
                 self.pub_button_data(self.button_pub)
                 self.pub_joy_data(self.joy_pub)
                 self.pub_imu_data(self.imu_pub)
+                self.pub_ultrasonic_data(self.ultrasonic_pub)
+                self.pub_wheel_speeds_data(self.wheel_speeds_pub)
                 self.pub_sbus_data(self.sbus_pub)
                 self.pub_battery_data(self.battery_pub)
                 time.sleep(0.02)
@@ -333,6 +337,20 @@ class RosRobotController(Node):
                                                  0.0, 0.0004, 0.0,
                                                  0.0, 0.0, 0.004]
             pub.publish(msg)
+
+    def pub_ultrasonic_data(self, pub):
+            data = self.board.get_ultrasonic()
+            if data is not None:
+                msg = UInt16()
+                msg.data = data
+                pub.publish(msg)
+
+    def pub_wheel_speeds_data(self, pub):
+            data = self.board.motor_speed_read_and_unpack()
+            if data is not None:
+                msg = WheelSpeeds()
+                msg.wheel_speed_rps = data
+                pub.publish(msg)
 
 def main():
     node = RosRobotController('ros_robot_controller')

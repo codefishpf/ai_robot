@@ -31,12 +31,11 @@ class PacketFunction(enum.IntEnum):
     PACKET_FUNC_IMU = 7  # IMU获取(obtain IMU)
     PACKET_FUNC_GAMEPAD = 8  # 手柄获取(obtain handle)
     PACKET_FUNC_SBUS = 9  # 航模遥控获取(obtain model aircraft remote control)
-    PACKET_FUNC_OLED = 10  # OLED 显示内容设置(set OLED display content)
-    PACKET_FUNC_RGB = 11  # RGB
-    PACKET_FUNC_NONE = 12
+    PACKET_FUNC_ULTRASONIC = 10  # Ultrasonic获取(obtain Ultrasonic)
+    PACKET_FUNC_NONE = 11
 
 class PacketReportKeyEvents(enum.IntEnum):
-    # 按键的不同状态(different button status)
+    # 按键的不同状态
     KEY_EVENT_PRESSED = 0x01
     KEY_EVENT_LONGPRESS = 0x02
     KEY_EVENT_LONGPRESS_REPEAT = 0x04
@@ -119,6 +118,7 @@ class Board:
         self.imu_queue = queue.Queue(maxsize=1)
         self.gamepad_queue = queue.Queue(maxsize=1)
         self.sbus_queue = queue.Queue(maxsize=1)
+        self.ultrasonic_queue = queue.Queue(maxsize=1)
 
         self.parsers = {
             PacketFunction.PACKET_FUNC_SYS: self.packet_report_sys,
@@ -127,7 +127,8 @@ class Board:
             PacketFunction.PACKET_FUNC_GAMEPAD: self.packet_report_gamepad,
             PacketFunction.PACKET_FUNC_BUS_SERVO: self.packet_report_serial_servo,
             PacketFunction.PACKET_FUNC_SBUS: self.packet_report_sbus,
-            PacketFunction.PACKET_FUNC_PWM_SERVO: self.packet_report_pwm_servo
+            PacketFunction.PACKET_FUNC_PWM_SERVO: self.packet_report_pwm_servo,
+            PacketFunction.PACKET_FUNC_ULTRASONIC: self.packet_report_ultrasonic,
         }
 
         time.sleep(0.5)
@@ -176,6 +177,12 @@ class Board:
         except queue.Full:
             pass
 
+    def packet_report_ultrasonic(self, data):
+        try:
+            self.ultrasonic_queue.put_nowait(data)
+        except queue.Full:
+            pass
+
     def get_battery(self):
         # 获取电压，单位mAh(obtain voltage, which is in the unit of mAh)
         if self.enable_recv:
@@ -218,6 +225,17 @@ class Board:
                 return None
         else:
             print('get_imu enable reception first!')
+            return None
+        
+    def get_ultrasonic(self):
+        # 获取ultrasonic数据，返回distance_mm(obtain ultrasonic data to return distance_mm)
+        if self.enable_recv:
+            try:
+                return struct.unpack('<H', self.ultrasonic_queue.get(block=False))[0]
+            except queue.Empty:
+                return None
+        else:
+            print('get_ultrasonic enable reception first!')
             return None
 
     def get_gamepad(self):
@@ -341,32 +359,6 @@ class Board:
         for i in speeds:
             data.extend(struct.pack("<Bf", int(i[0] - 1), float(i[1])))
         self.buf_write(PacketFunction.PACKET_FUNC_MOTOR, data)
-    
-    '''
-    def set_rgb(self, pixels):
-        #data = [0x01, len(pixels), ]
-        #data = pixels
-        data = []
-        #print('data:',data)
-        #if len(pixels) > 4:
-        #data = [0]
-        #for index, r, g, b in pixels:
-        #   data.extend(struct.pack("<BBBB", int(index), int(r), int(g), int(b)))
-        #data.extend(struct.pack("<BBBBBBB", int(0), int(0), int(0), int(222),int(0), int(0), int(222)))
-        data.extend(struct.pack("<BBBBBBB", 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00))
-        print('data:',data)
-        self.buf_write(PacketFunction.PACKET_FUNC_RGB, data)
-    '''
-    def set_rgb(self , pixels):
-        data = [0x01 , len(pixels),]
-        for index , r , g , b in pixels:
-            data.extend(struct.pack("<BBBB", int(index - 1) , int(r), int(g) , int(b)))
-        self.buf_write(PacketFunction.PACKET_FUNC_RGB , data)
-        
-    def set_oled_text(self, line, text):
-        data = [line, len(text)] # 子命令为 0x01 设置 SSID, 第二个字节是字符串长度，该长度包含'\0'字符串结束符(The sub-command 0x01 is used to set the SSID. The second byte is the length of the string, which includes the '\0' string termination character)
-        data.extend(bytes(text, encoding='utf-8'))
-        self.buf_write(PacketFunction.PACKET_FUNC_OLED, data)
 
     def pwm_servo_set_position(self, duration, positions):
         duration = int(duration * 1000)
@@ -587,19 +579,12 @@ if __name__ == "__main__":
     board.enable_reception()
     print("START...")
     #time.sleep(2)
-    board.set_led(0.1, 0.9, 1,1)
-    #board.set_led(0.1, 0.9, 5,2)
+    board.set_led(0.1, 0.9, 1, 1)
+    #board.set_led(0.1, 0.9, 5, 2)
     board.set_buzzer(1900, 0.05, 0.01, 1)
     #time.sleep(1)
     #board.set_buzzer(1900, 0.05, 0.01, 1)
     #time.sleep(1)
-    #board.set_rgb([[2, 100, 0, 0],[1,100,0,0]])
-    #time.sleep(0.5)
-    #board.set_rgb([[2, 0, 0, 255],[1,0,0,255]])
-    #time.sleep(0.5)
-    #board.set_rgb([[2, 255, 0, 0],[1,255,0,0]])
-    #time.sleep(0.5)
-    #board.set_rgb([[1, 0, 255, 0]])
     #board.set_motor_speed([[1, -0.6], [2, -0.6], [3, 0.6], [4, 0.6]])
     #time.sleep(1)
     #board.set_motor_speed([[1, 0], [2, 0], [3, 0], [4, 0]])
@@ -610,12 +595,15 @@ if __name__ == "__main__":
     # last_time = time.time()
     while True:
         try:
-            # board.set_buzzer(3000, 0.05, 0.01, 1)
+            board.set_buzzer(3000, 0.05, 0.01, 1)
             res = board.get_imu()
             if res is not None:
                 for item in res:
                    print("  {: .8f} ".format(item), end='')
                 print()
+            # res = board.get_ultrasonic()
+            # if res is not None:
+            #     print(res)
             # res = board.get_button()
             # if res is not None:
                 # print(res)
@@ -629,13 +617,7 @@ if __name__ == "__main__":
             # res = board.get_battery()
             # if res is not None:
                 # print(res)
-            #board.set_rgb([[2, 50, 0, 0],[1,50,0,0]])
-            #time.sleep(0.05)
-            #board.set_rgb([[2, 0, 50, 0],[1,0,50,0]])
-            #time.sleep(0.05)
-            #board.set_rgb([[2, 255, 0, 0],[1,255,0,0]])
-            
-            #time.sleep(0.1)
+            time.sleep(0.1)
             # t = time.time()
             # print(1/(t - last_time))
             # last_time = t

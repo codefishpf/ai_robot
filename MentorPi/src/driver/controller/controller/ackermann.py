@@ -16,11 +16,20 @@ class AckermannChassis:
 
     def speed_covert(self, speed):
         """
-        covert speed m/s to rps/s
+        covert speed m/s to rps
         :param speed:
         :return:
         """
+        # distance / circumference = rotations per second
         return speed / (math.pi * self.wheel_diameter)
+    
+    def wheel_speed_parse(self, wheel_speed_rps):
+        """
+        parse wheelspeed rps to m/s
+        :param wheel speed rps:
+        :return:
+        """
+        return wheel_speed_rps * (math.pi * self.wheel_diameter)
 
     def set_velocity(self, linear_speed, angular_speed, reset_servo=True):
         servo_angle = 1500
@@ -64,3 +73,10 @@ class AckermannChassis:
             msg.data = data
             return None, msg
 
+    def get_velocity(self, wheel_speeds_rps):
+        """
+        Compute linear and angular speed from four wheel speeds
+        :param wheel_speeds_rps:
+        :return:
+        """
+        pass

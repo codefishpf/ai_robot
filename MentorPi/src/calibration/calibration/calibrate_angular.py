@@ -7,7 +7,7 @@ import threading
 from rclpy.node import Node
 from tf2_ros.buffer import Buffer
 from geometry_msgs.msg import Twist, Point
-from math import copysign, pi, atan2, asin, degrees
+from math import copysign, pi, atan2, asin, degrees,radians
 from tf2_ros.transform_listener import TransformListener
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 
@@ -79,19 +79,20 @@ class CalibrateAngular(Node):
 
     def update_param(self):
         self.start_test = self.get_parameter('start_test').value
-        self.test_angle = self.get_parameter('test_angle').value
-        self.speed = self.get_parameter('speed').value
-        self.tolerance = self.get_parameter('tolerance').value
+        self.test_angle = radians(self.get_parameter('test_angle').value)  # radians
+        self.speed = self.get_parameter('speed').value  # rad/s
+        self.tolerance = radians(self.get_parameter('tolerance').value)  # radians
         self.odom_angular_scale_correction = self.get_parameter('odom_angular_scale_correction').value
 
     def main(self):
         while True:
             self.update_param()
+            self.test_angle = copysign(self.test_angle, self.reverse)
             move_cmd = Twist()
             if self.start_test:
                 # Get the current rotation angle from tf
+                # TODO: this is wrong, but right in practise.
                 original_angle = degrees(self.get_odom_angle())
-                self.test_angle = copysign(self.test_angle, self.reverse)
 
                 # Compute how far we have gone since the last measurement
                 delta_angle = self.odom_angular_scale_correction * normalize_angle(original_angle - self.last_angle)
