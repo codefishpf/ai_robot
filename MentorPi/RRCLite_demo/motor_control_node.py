@@ -11,6 +11,10 @@ class MotorControlNode(Node):
     def timer_callback(self):
         msg = MotorsState()
         motor_state = MotorState()
+        motor_state.id = 1
+        motor_state.rps = -0.2
+        msg.data.append(motor_state)
+        motor_state = MotorState()
         motor_state.id = 2
         motor_state.rps = 0.2
         msg.data.append(motor_state)
