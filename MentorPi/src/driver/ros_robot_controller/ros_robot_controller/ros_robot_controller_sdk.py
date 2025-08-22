@@ -31,8 +31,10 @@ class PacketFunction(enum.IntEnum):
     PACKET_FUNC_IMU = 7  # IMU获取(obtain IMU)
     PACKET_FUNC_GAMEPAD = 8  # 手柄获取(obtain handle)
     PACKET_FUNC_SBUS = 9  # 航模遥控获取(obtain model aircraft remote control)
-    PACKET_FUNC_ULTRASONIC = 10  # Ultrasonic获取(obtain Ultrasonic)
-    PACKET_FUNC_NONE = 11
+    PACKET_FUNC_OLED = 10  # OLED 显示内容设置(set OLED display content)
+    PACKET_FUNC_RGB = 11  # RGB
+    PACKET_FUNC_ULTRASONIC = 12  # Ultrasonic获取(obtain Ultrasonic)
+    PACKET_FUNC_NONE = 13
 
 class PacketReportKeyEvents(enum.IntEnum):
     # 按键的不同状态
@@ -107,11 +109,13 @@ class Board:
         self.port.open()
 
         self.state = PacketControllerState.PACKET_CONTROLLER_STATE_STARTBYTE1
+        self.motor_read_lock = threading.Lock()
         self.servo_read_lock = threading.Lock()
         self.pwm_servo_read_lock = threading.Lock()
 
         # 队列用来存储数据(use queue to store data)
         self.sys_queue = queue.Queue(maxsize=1)
+        self.motor_speed_queue = queue.Queue(maxsize=1)
         self.bus_servo_queue = queue.Queue(maxsize=1)
         self.pwm_servo_queue = queue.Queue(maxsize=1)
         self.key_queue = queue.Queue(maxsize=1)
@@ -126,6 +130,7 @@ class Board:
             PacketFunction.PACKET_FUNC_IMU: self.packet_report_imu,
             PacketFunction.PACKET_FUNC_GAMEPAD: self.packet_report_gamepad,
             PacketFunction.PACKET_FUNC_BUS_SERVO: self.packet_report_serial_servo,
+            PacketFunction.PACKET_FUNC_MOTOR: self.packet_report_motor_speed,
             PacketFunction.PACKET_FUNC_SBUS: self.packet_report_sbus,
             PacketFunction.PACKET_FUNC_PWM_SERVO: self.packet_report_pwm_servo,
             PacketFunction.PACKET_FUNC_ULTRASONIC: self.packet_report_ultrasonic,
@@ -156,6 +161,12 @@ class Board:
     def packet_report_gamepad(self, data):
         try:
             self.gamepad_queue.put_nowait(data)
+        except queue.Full:
+            pass
+
+    def packet_report_motor_speed(self, data):
+        try:
+            self.motor_speed_queue.put_nowait(data)
         except queue.Full:
             pass
 
@@ -359,6 +370,42 @@ class Board:
         for i in speeds:
             data.extend(struct.pack("<Bf", int(i[0] - 1), float(i[1])))
         self.buf_write(PacketFunction.PACKET_FUNC_MOTOR, data)
+    
+    def motor_speed_read_and_unpack(self, cmd=0x04, unpack="<B4f"):
+        with self.motor_read_lock:
+            self.buf_write(PacketFunction.PACKET_FUNC_MOTOR, [cmd])
+            data = self.motor_speed_queue.get(block=True)
+            expected_size = struct.calcsize(unpack)  # 1 + 4*4 = 17 Bytes
+            if len(data) != expected_size:
+                raise ValueError("Unexpected size of data: %d (expected %d)" % (len(data), expected_size))
+            cmd, *actual_speeds = struct.unpack(unpack, data)
+            return actual_speeds
+
+    '''
+    def set_rgb(self, pixels):
+        #data = [0x01, len(pixels), ]
+        #data = pixels
+        data = []
+        #print('data:',data)
+        #if len(pixels) > 4:
+        #data = [0]
+        #for index, r, g, b in pixels:
+        #   data.extend(struct.pack("<BBBB", int(index), int(r), int(g), int(b)))
+        #data.extend(struct.pack("<BBBBBBB", int(0), int(0), int(0), int(222),int(0), int(0), int(222)))
+        data.extend(struct.pack("<BBBBBBB", 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00))
+        print('data:',data)
+        self.buf_write(PacketFunction.PACKET_FUNC_RGB, data)
+    '''
+    def set_rgb(self , pixels):
+        data = [0x01 , len(pixels),]
+        for index , r , g , b in pixels:
+            data.extend(struct.pack("<BBBB", int(index - 1) , int(r), int(g) , int(b)))
+        self.buf_write(PacketFunction.PACKET_FUNC_RGB , data)
+        
+    def set_oled_text(self, line, text):
+        data = [line, len(text)] # 子命令为 0x01 设置 SSID, 第二个字节是字符串长度，该长度包含'\0'字符串结束符(The sub-command 0x01 is used to set the SSID. The second byte is the length of the string, which includes the '\0' string termination character)
+        data.extend(bytes(text, encoding='utf-8'))
+        self.buf_write(PacketFunction.PACKET_FUNC_OLED, data)
 
     def pwm_servo_set_position(self, duration, positions):
         duration = int(duration * 1000)
@@ -574,20 +621,41 @@ def pwm_servo_test(board):
     print('offset:', board.pwm_servo_read_offset(servo_id))
     print('position:', board.pwm_servo_read_position(servo_id))
 
+def motor_test(board):
+    board.set_motor_speed([[1, 0.2], [2, 0.2], [3, 0.2], [4, 0.2]])
+    time.sleep(0.1)
+    actual_speeds = board.motor_speed_read_and_unpack()
+    print('motor speed:', actual_speeds[0], actual_speeds[1], actual_speeds[2], actual_speeds[3])
+    time.sleep(1)
+    board.set_motor_speed([[1, 0], [2, 0], [3, 0], [4, 0]])
+    time.sleep(0.1)
+    actual_speeds = board.motor_speed_read_and_unpack()
+    print('motor speed:', actual_speeds[0], actual_speeds[1], actual_speeds[2], actual_speeds[3])
+    time.sleep(1)
+
 if __name__ == "__main__":
     board = Board()
     board.enable_reception()
     print("START...")
     #time.sleep(2)
-    board.set_led(0.1, 0.9, 1, 1)
-    #board.set_led(0.1, 0.9, 5, 2)
+    board.set_led(0.1, 0.9, 1,1)
+    #board.set_led(0.1, 0.9, 5,2)
     board.set_buzzer(1900, 0.05, 0.01, 1)
-    #time.sleep(1)
+    time.sleep(1)
     #board.set_buzzer(1900, 0.05, 0.01, 1)
     #time.sleep(1)
+    #board.set_rgb([[2, 100, 0, 0],[1,100,0,0]])
+    #time.sleep(0.5)
+    #board.set_rgb([[2, 0, 0, 255],[1,0,0,255]])
+    #time.sleep(0.5)
+    #board.set_rgb([[2, 255, 0, 0],[1,255,0,0]])
+    #time.sleep(0.5)
+    #board.set_rgb([[1, 0, 255, 0]])
     #board.set_motor_speed([[1, -0.6], [2, -0.6], [3, 0.6], [4, 0.6]])
     #time.sleep(1)
     #board.set_motor_speed([[1, 0], [2, 0], [3, 0], [4, 0]])
+
+    motor_test(board)
     
     #bus_servo_test(board)
     #board.bus_servo_set_position(1, [[1, 700], [2, 500]])
@@ -601,9 +669,9 @@ if __name__ == "__main__":
                 for item in res:
                    print("  {: .8f} ".format(item), end='')
                 print()
-            # res = board.get_ultrasonic()
-            # if res is not None:
-            #     print(res)
+            res = board.get_ultrasonic()
+            if res is not None:
+                print(res)
             # res = board.get_button()
             # if res is not None:
                 # print(res)
@@ -617,6 +685,12 @@ if __name__ == "__main__":
             # res = board.get_battery()
             # if res is not None:
                 # print(res)
+            #board.set_rgb([[2, 50, 0, 0],[1,50,0,0]])
+            #time.sleep(0.05)
+            #board.set_rgb([[2, 0, 50, 0],[1,0,50,0]])
+            #time.sleep(0.05)
+            #board.set_rgb([[2, 255, 0, 0],[1,255,0,0]])
+            
             time.sleep(0.1)
             # t = time.time()
             # print(1/(t - last_time))

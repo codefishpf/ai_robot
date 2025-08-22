@@ -3,7 +3,7 @@
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import UInt16
+from sensor_msgs.msg import Range
 
 class UltrasonicSubscriber(Node):
     def __init__(self):
@@ -13,7 +13,7 @@ class UltrasonicSubscriber(Node):
         self.ultrasonic_topic = self.get_parameter('ultrasonic_topic').get_parameter_value().string_value
 
         self.subscription = self.create_subscription(
-            UInt16,
+            Range,
             self.ultrasonic_topic,
             self.listener_callback,
             10)
@@ -22,7 +22,7 @@ class UltrasonicSubscriber(Node):
         self.get_logger().info(f'Subscribed to {self.ultrasonic_topic}')
 
     def listener_callback(self, msg):
-        self.get_logger().info(f'Obstacle distance: {msg.data} mm')
+        self.get_logger().info(f'Obstacle distance: {msg.range} m')
 
 def main(args=None):
     rclpy.init(args=args)

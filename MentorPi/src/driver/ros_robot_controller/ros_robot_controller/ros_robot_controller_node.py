@@ -12,7 +12,7 @@ import threading
 import yaml  # 已导入 PyYAML
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from sensor_msgs.msg import Imu, Joy
+from sensor_msgs.msg import Imu, Joy, Range
 from std_msgs.msg import UInt16, Bool
 from ros_robot_controller.ros_robot_controller_sdk import Board, PacketReportKeyEvents
 from ros_robot_controller_msgs.srv import GetBusServoState, GetPWMServoState
@@ -33,11 +33,13 @@ class RosRobotController(Node):
         self.running = True
 
         self.declare_parameter('imu_frame', 'imu_link')
+        self.declare_parameter('ultrasonic_frame', 'ultrasonic_link')
         self.declare_parameter('init_finish', False)
         self.IMU_FRAME = self.get_parameter('imu_frame').value
+        self.ULTRASONIC_FRAME = self.get_parameter('ultrasonic_frame').value
 
         self.imu_pub = self.create_publisher(Imu, '~/imu_raw', 1)
-        self.ultrasonic_pub = self.create_publisher(UInt16, '~/ultrasonic', 1)
+        self.ultrasonic_pub = self.create_publisher(Range, '~/ultrasonic', 1)
         self.wheel_speeds_pub = self.create_publisher(WheelSpeeds, '~/wheel_speeds', 1)
         self.joy_pub = self.create_publisher(Joy, '~/joy', 1)
         self.sbus_pub = self.create_publisher(Sbus, '~/sbus', 1)
@@ -341,8 +343,14 @@ class RosRobotController(Node):
     def pub_ultrasonic_data(self, pub):
             data = self.board.get_ultrasonic()
             if data is not None:
-                msg = UInt16()
-                msg.data = data
+                msg = Range()
+                msg.header.stamp = self.clock.now().to_msg()
+                msg.header.frame_id = self.ULTRASONIC_FRAME
+                msg.radiation_type = Range.ULTRASOUND
+                msg.field_of_view = 0.26  # 15 deg from sensor specification
+                msg.min_range = 0.02      #  2 cm from sensor specification
+                msg.max_range = 4.0       #  4 m from sensor specification
+                msg.range = data / 1000.0  # measurement value, must be float type in meters
                 pub.publish(msg)
 
     def pub_wheel_speeds_data(self, pub):
