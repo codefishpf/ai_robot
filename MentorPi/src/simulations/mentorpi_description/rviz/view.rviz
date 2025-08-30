@@ -115,6 +115,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        ultrasonic_Link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
       Mass Properties:
         Inertia: false
         Mass: false
@@ -148,7 +153,9 @@ Visualization Manager:
           Value: true
         wheel_rf_Link:
           Value: true
-      Marker Scale: 0.4000000059604645
+        ultrasonic_Link:
+          Value: true
+      Marker Scale: 0.40
       Name: TF
       Show Arrows: true
       Show Axes: true
@@ -170,6 +177,8 @@ Visualization Manager:
             wheel_rb_Link:
               {}
             wheel_rf_Link:
+              {}
+            ultrasonic_Link:
               {}
       Update Interval: 0
       Value: true

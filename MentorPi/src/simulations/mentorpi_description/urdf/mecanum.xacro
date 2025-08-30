@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <robot name="mecanum" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="M_PI" value="3.1415926535897931"/>
   <!-- 定义黑色材质 -->
   <material name="black">
     <color rgba="0 0 0 1"/>
@@ -212,5 +213,23 @@
     <child link="lidar_frame"/>
     <axis xyz="0 0 0"/>
   </joint>
-  
+  <link name="ultrasonic_link">
+    <visual>
+      <origin rpy="0 ${M_PI/2} 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.015" length="0.01"/> <!-- 圆柱体表示 -->
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 ${M_PI/2} 0" xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="0.015"/> <!-- 简化碰撞模型 -->
+      </geometry>
+    </collision>
+  </link>
+  <joint name="ultrasonic_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ultrasonic_link"/>
+    <origin xyz="0.085 0 0.10" rpy="0 0 0"/>
+  </joint>
 </robot>

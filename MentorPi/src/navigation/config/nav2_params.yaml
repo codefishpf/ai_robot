@@ -138,11 +138,7 @@ local_costmap:
       height: 3
       resolution: 0.03
       robot_radius: 0.05
-      plugins: ["voxel_layer", "inflation_layer"]
-      inflation_layer:
-        plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 2.0
-        inflation_radius: 0.05
+      plugins: ["voxel_layer", "range_sensor_layer", "inflation_layer"]
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -164,9 +160,16 @@ local_costmap:
           raytrace_min_range: 0.0
           obstacle_max_range: 2.5
           obstacle_min_range: 0.0
-      static_layer:
-        plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: True
+      range_sensor_layer:
+        plugin: "nav2_costmap_2d::RangeSensorLayer"
+        enabled: True
+        topics: ["/ros_robot_controller/ultrasonic"]
+        no_readings_timeout: 2.0
+        clear_on_max_reading: False
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 2.0
+        inflation_radius: 0.1
       always_send_full_costmap: True
   local_costmap_rclcpp_node:
     ros__parameters:
