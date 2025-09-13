@@ -4,7 +4,7 @@ import time
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import UInt16
+from sensor_msgs.msg import Range
 
 from controller import mecanum
 from ros_robot_controller_msgs.msg import MotorsState
@@ -13,13 +13,13 @@ class ObstacleAvoidanceNode(Node):
     def __init__(self):
         super().__init__('obstacle_avoidance')
 
-        self.safe_distance = 200  # mm
+        self.safe_distance = 0.2  # m
         self.forward_speed = 0.2  # m/s
         self.turn_speed = 0.5     # rad/s
 
         self.mecanum = mecanum.MecanumChassis()
         self.motor_pub = self.create_publisher(MotorsState, '/ros_robot_controller/set_motor', 1)
-        self.ultrasonic_sub = self.create_subscription(UInt16, '/ros_robot_controller/ultrasonic', self.ultrasonic_callback, 10)
+        self.ultrasonic_sub = self.create_subscription(Range, '/ros_robot_controller/ultrasonic', self.ultrasonic_callback, 10)
 
         self.timer = self.create_timer(0.1, self.timer_callback)
 
@@ -30,8 +30,8 @@ class ObstacleAvoidanceNode(Node):
         self.get_logger().info('\033[1;32m%s\033[0m' % 'start')
 
     def ultrasonic_callback(self, msg):
-        self.distance = msg.data
-        self.get_logger().info(f'Obstacle distance: {self.distance} mm')
+        self.distance = msg.range
+        self.get_logger().info(f'Obstacle distance: {self.distance} m')
 
         if self.state == "FORWARD" and self.distance < self.safe_distance:
             self.state = "TURNING"
