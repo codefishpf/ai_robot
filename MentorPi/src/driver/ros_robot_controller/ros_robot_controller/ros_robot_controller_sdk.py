@@ -97,7 +97,7 @@ class Board:
             'GAMEPAD_BUTTON_MASK_R1':        0x8000
     }
 
-    def __init__(self, device="/dev/rrc", baudrate=1000000, timeout=10):
+    def __init__(self, device="/dev/rrc", baudrate=115200, timeout=10):
         self.enable_recv = False
         self.frame = []
         self.recv_count = 0
