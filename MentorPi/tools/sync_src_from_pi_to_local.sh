@@ -1,13 +1,18 @@
 #!/bin/bash
 # sync src code from pi to local
-echo "将mentorpi上的src拷贝到本机 (注意先将以下BOT_NAME和BOT_IP改成你树莓派的name和ip)"
-BOT_NAME='pi'
-BOT_IP='192.168.3.25'
+
+# 注意先将以下参数（机器人的name，ip，密码）写入.bashrc或.zshrc
+# BOT_NAME='pi'
+# BOT_IP='192.168.3.25'
+# BOT_PASSWORD=''
+
+echo "将mentorpi上的src拷贝到本机"
+echo "BOT_NAME: $BOT_NAME, BOT_IP: $BOT_IP, BOT_PASSWORD: $BOT_PASSWORD"
+
 set -x
 echo "输入树莓派密码..."
-ssh $BOT_NAME@$BOT_IP "ls"
-ssh $BOT_NAME@$BOT_IP "ls -lht"
-docker cp MentorPi:/home/ubuntu/ros2_ws/src /home/pi/docker/tmp/src_copy
+sshpass -p $BOT_PASSWORD ssh $BOT_NAME@$BOT_IP "ls -lht"
+sshpass -p $BOT_PASSWORD docker cp MentorPi:/home/ubuntu/ros2_ws/src /home/pi/docker/tmp/src_copy_from_pi
+sshpass -p $BOT_PASSWORD scp -r $BOT_NAME@$BOT_IP:/home/pi/docker/tmp/src_copy_from_pi $HOME/src/ai_robot/MentorPi/
 exit
-scp $BOT_NAME@$BOT_IP:/home/pi/docker/tmp/src_copy $HOME/src/ai_robot/MentorPi/
 echo "done"
