@@ -7,6 +7,7 @@ import math
 import time
 import rclpy
 import threading
+import tf_transformations  # TF坐标变换库
 import numpy as np
 import sdk.pid as pid
 import sdk.common as common
@@ -14,7 +15,10 @@ from rclpy.node import Node
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped
 from std_msgs.msg import String, Int32
-# from xf_mic_asr_offline import voice_play
+from tf2_ros.buffer import Buffer
+from tf2_ros import TransformException
+from tf2_ros.transform_listener import TransformListener
+from xf_mic_asr_offline.voice_play import play
 from ros_robot_controller_msgs.msg import BuzzerState
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 
@@ -33,7 +37,6 @@ class VoiceInteractiveNode(Node):
         self.running = True
         self.haved_stop = False
         self.current_pose = None
-        #        self.lidar_follow = False
         self.start_follow = False
         self.last_status = Twist()
         self.threshold = 3
@@ -42,11 +45,13 @@ class VoiceInteractiveNode(Node):
         self.count = 0
         self.scan_angle = math.radians(90)
 
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
         self.pid_yaw = pid.PID(1.6, 0, 0.16)
         self.pid_dist = pid.PID(1.7, 0, 0.16)
 
         self.language = os.environ['ASR_LANGUAGE']
-        #        self.lidar_type = os.environ.get('LIDAR_TYPE')
         self.machine_type = os.environ.get('MACHINE_TYPE')
         self.mecanum_pub = self.create_publisher(Twist, '/controller/cmd_vel',
                                                  1)
@@ -60,16 +65,16 @@ class VoiceInteractiveNode(Node):
                                  self.words_callback, 1)
         self.create_subscription(Int32, '/awake_node/angle',
                                  self.angle_callback, 1)
-        self.pose_sub = self.create_subscription(PoseWithCovarianceStamped,
-                                                 'set_pose',
-                                                 self.pose_callback, 1)
+        # self.pose_sub = self.create_subscription(PoseWithCovarianceStamped,
+        #                                          'set_pose',
+        #                                          self.pose_callback, 1)
 
         self.client = self.create_client(Trigger, '/asr_node/init_finish')
         self.client.wait_for_service()  # 阻塞等待(blocking wait)
         self.declare_parameter('delay', 0)
         time.sleep(self.get_parameter('delay').value)
         self.mecanum_pub.publish(Twist())
-        #        self.play('running')
+        self.play('running')
 
         self.get_logger().info('唤醒口令: 小艾(Wake up word: hello hiwonder)')
         self.get_logger().info(
@@ -88,9 +93,8 @@ class VoiceInteractiveNode(Node):
         response.success = True
         return response
 
-
-#    def play(self, name):
-#        voice_play.play(name, language=self.language)
+    def play(self, name):
+        play(name, language=self.language)
 
     def words_callback(self, msg):
         #self.words = json.dumps(msg.data, ensure_ascii=False)[1:-1]
@@ -104,7 +108,7 @@ class VoiceInteractiveNode(Node):
         ]:
             pass
         elif self.words == '唤醒成功(wake-up-success)':
-            #            self.play('awake')
+            self.play('awake')
             pass
         elif self.words == '休眠(Sleep)':
             msg = BuzzerState()
@@ -121,17 +125,30 @@ class VoiceInteractiveNode(Node):
         self.start_follow = False
         # self.mecanum_pub.publish(Twist())
 
-    def pose_callback(self, msg):
-        self.get_logger().info('receive odom pose msg:%s' % msg)
-        self.current_pose = msg.pose.pose
+    def get_current_pose(self):
+        self.get_logger().info('get current pose from tf')
+        try:
+            now = rclpy.time.Time()  # 获取ROS系统的当前时间
+            trans = self.tf_buffer.lookup_transform(  # 监听当前时刻源坐标系到目标坐标系的坐标变换
+                'base_link', 'map', now)
+        except TransformException as ex:  # 如果坐标变换获取失败，进入异常报告
+            self.get_logger().info('Could not get transform, %s', ex)
+        pos = trans.transform.translation  # 获取位置信息
+        quat = trans.transform.rotation  # 获取姿态信息（四元数）
+        euler = tf_transformations.euler_from_quaternion(
+            [quat.x, quat.y, quat.z, quat.w])
+        self.get_logger().info(
+            'Get %s --> %s transform: [%f, %f, %f] [%f, %f, %f]' %
+            (self.source_frame, self.target_frame, pos.x, pos.y, pos.z,
+             euler[0], euler[1], euler[2]))
 
     def compute_goal_pose(self):
         pose = PoseStamped()
         pose.header.stamp = self.get_clock().now().to_msg()
         pose.header.frame_id = 'map'
+        self.current_pose = self.get_current_pose()
         if not self.current_pose:
             self.get_logger().error('None current pose')
-            self.current_pose = PoseWithCovarianceStamped().pose.pose
         if not self.angle:
             self.get_logger().error('None angle')
         angle_rad = math.radians(self.angle)
@@ -153,24 +170,24 @@ class VoiceInteractiveNode(Node):
                 self.get_logger().info('voice angle: %s' % self.angle)
                 twist = Twist()
                 if self.words == '前进' or self.words == 'goforward':
-                    # self.play('go')
+                    self.play('go')
                     self.stop_time_stamp = time.time() + 4
                     twist.linear.x = 0.2
                 elif self.words == '后退' or self.words == 'gobackward':
-                    #                    self.play('back')
+                    self.play('back')
                     self.get_logger().info('Executing backward command')
                     self.stop_time_stamp = time.time() + 4
                     twist.linear.x = -0.2
                 elif self.words == '左转' or self.words == 'turnleft':
-                    #                    self.play('turn_left')
+                    self.play('turn_left')
                     self.stop_time_stamp = time.time() + 2
                     twist.angular.z = 0.8
                 elif self.words == '右转' or self.words == 'turnright':
-                    #                    self.play('turn_right')
+                    self.play('turn_right')
                     self.stop_time_stamp = time.time() + 2
                     twist.angular.z = -0.8
                 elif self.words == '过来' or self.words == 'comehere':
-                    # #                    self.play('come')
+                    self.play('come')
                     # if 270 > self.angle > 90:
                     #     twist.angular.z = -1.0
                     #     self.stop_time_stamp = time.time() + abs(

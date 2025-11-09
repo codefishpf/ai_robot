@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # coding=utf-8
-# @Author: Aiden
 import os
 import time
 import rclpy
@@ -12,6 +11,9 @@ from std_msgs.msg import String, Bool
 from rclpy.executors import MultiThreadedExecutor
 from xf_mic_asr_offline_msgs.srv import GetOfflineResult
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from MentorPi.src.xf_mic_asr_offline.xf_mic_asr_offline.voice_play import play, set_default_device, set_default_language
+
+SECONDS_PER_ORDER = 5
 
 
 class ASRNode(Node):
@@ -20,19 +22,25 @@ class ASRNode(Node):
         rclpy.init()
         super().__init__(name)
 
-        # 新增参数：音频文件路径 7/12
-        self.declare_parameter(
-            'feedback_audio',
-            '/home/ubuntu/ros2_ws/src/xf_mic_asr_offline/feedback_voice/ok.wav'
-        )
-        self.feedback_audio = self.get_parameter('feedback_audio').value
-        self.get_logger().info(f'Feedback audio set to: {self.feedback_audio}')
+        # 设置语音播放参数
+        self.declare_parameter('audio_device', 'plughw:2,0')
+        self.declare_parameter('language', 'Chinese')
+
+        audio_device = self.get_parameter('audio_device').value
+        language = self.get_parameter('language').value
+
+        # 配置语音播放器
+        set_default_device(audio_device)
+        set_default_language(language)
+
+        self.get_logger().info(
+            f'Audio device: {audio_device}, Language: {language}')
 
         self.awake_flag = False
         self.recognize_fail_count = 0
         self.recognize_fail_count_threshold = 15
         self.declare_parameter('confidence', 18)
-        self.declare_parameter('seconds_per_order', 5)
+        self.declare_parameter('seconds_per_order', SECONDS_PER_ORDER)
 
         self.confidence_threshold = self.get_parameter('confidence').value
         self.seconds_per_order = self.get_parameter('seconds_per_order').value
@@ -62,69 +70,13 @@ class ASRNode(Node):
         self.awake_flag = msg.data
 
         if self.awake_flag:
-            # 在独立线程中播放音频，避免阻塞主线程
-            threading.Thread(target=self.play_feedback_audio,
-                             daemon=True).start()
-
-            #            self.play('ok')
+            # 使用语音播放模块播放唤醒反馈
+            play('ok')  # 播放 ok.wav 文件
 
             count_msg = String()
             count_msg.data = "唤醒成功(wake-up-success)"
             self.control.publish(count_msg)
             self.get_logger().info('\033[1;32m唤醒成功(wake-up-success)\033[0m')
-
-        # count_msg = String()
-        # count_msg.data = "唤醒成功(wake-up-success)"
-        # self.control.publish(count_msg)
-        # self.get_logger().info('\033[1;32m唤醒成功(wake-up-success)\033[0m')
-
-        # 新增函数：播放音频反馈 7/12
-    def play_feedback_audio(self):
-        """播放指定的音频文件作为唤醒反馈"""
-        try:
-            # 使用aplay播放WAV文件
-            subprocess.run(['aplay', self.feedback_audio], check=True)
-            self.get_logger().info(f'成功播放反馈音频: {self.feedback_audio}')
-        except subprocess.CalledProcessError as e:
-            self.get_logger().error(f'播放音频失败: {e}')
-        except FileNotFoundError:
-            self.get_logger().error(f'未找到音频文件: {self.feedback_audio}')
-        except Exception as e:
-            self.get_logger().error(f'播放音频时发生错误: {e}')
-
-
-#    def play(self, name):
-#        voice_play.play(name, language=self.language)
-
-    def play_feedback_audio(self):
-        try:
-            self.get_logger().info(f'play audio: {self.feedback_audio}')
-
-            if not os.path.isfile(self.feedback_audio):
-                self.get_logger().error(
-                    f'audio file not exist: {self.feedback_audio}')
-                return
-
-            if not os.access(self.feedback_audio, os.R_OK):
-                self.get_logger().error(
-                    f'file not read: {self.feedback_audio}')
-                return
-
-            self.get_logger().info(f'file play')
-
-            result = subprocess.run(['aplay', self.feedback_audio],
-                                    check=True,
-                                    capture_output=True,
-                                    text=True)
-            self.get_logger().info(f'play successed: {self.feedback_audio}')
-
-        except subprocess.CalledProcessError as e:
-            self.get_logger().error(f'play failed: {e}')
-            self.get_logger().error(f'error: {e.stderr}')
-        except FileNotFoundError:
-            self.get_logger().error(f'aplay alsa-utils')
-        except Exception as e:
-            self.get_logger().error(f'error occurred: {e}')
 
     def main(self):
         if self.awake_flag:
