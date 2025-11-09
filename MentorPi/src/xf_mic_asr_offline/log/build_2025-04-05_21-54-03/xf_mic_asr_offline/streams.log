@@ -1,0 +1,33 @@
+[0.081s] Invoking command in '/home/ubuntu/ros2_ws/src/xf_mic_asr_offline/build/xf_mic_asr_offline': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ubuntu/ros2_ws/install/yolov5_ros2:/home/ubuntu/ros2_ws/install/slam:/home/ubuntu/ros2_ws/install/sdk:/home/ubuntu/ros2_ws/install/ros_robot_controller:/home/ubuntu/ros2_ws/install/peripherals:/home/ubuntu/ros2_ws/install/navigation:/home/ubuntu/ros2_ws/install/my_test:/home/ubuntu/ros2_ws/install/multi:/home/ubuntu/ros2_ws/install/mentorpi_description:/home/ubuntu/ros2_ws/install/example:/home/ubuntu/ros2_ws/install/controller:/home/ubuntu/ros2_ws/install/calibration:/home/ubuntu/ros2_ws/install/bringup:/home/ubuntu/ros2_ws/install/app /usr/bin/cmake /home/ubuntu/ros2_ws/src/xf_mic_asr_offline -DCMAKE_INSTALL_PREFIX=/home/ubuntu/ros2_ws/src/xf_mic_asr_offline/install/xf_mic_asr_offline
+[0.194s] -- The C compiler identification is GNU 11.4.0
+[0.307s] -- The CXX compiler identification is GNU 11.4.0
+[0.319s] -- Detecting C compiler ABI info
+[0.450s] -- Detecting C compiler ABI info - done
+[0.463s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.465s] -- Detecting C compile features
+[0.466s] -- Detecting C compile features - done
+[0.471s] -- Detecting CXX compiler ABI info
+[0.622s] -- Detecting CXX compiler ABI info - done
+[0.638s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.638s] -- Detecting CXX compile features
+[0.641s] -- Detecting CXX compile features - done
+[0.669s] [31mCMake Error at CMakeLists.txt:14 (find_package):
+[0.670s]   By not providing "Findament_cmake.cmake" in CMAKE_MODULE_PATH this project
+[0.670s]   has asked CMake to find a package configuration file provided by
+[0.670s]   "ament_cmake", but CMake did not find one.
+[0.671s] 
+[0.672s]   Could not find a package configuration file provided by "ament_cmake" with
+[0.672s]   any of the following names:
+[0.673s] 
+[0.673s]     ament_cmakeConfig.cmake
+[0.674s]     ament_cmake-config.cmake
+[0.675s] 
+[0.675s]   Add the installation prefix of "ament_cmake" to CMAKE_PREFIX_PATH or set
+[0.676s]   "ament_cmake_DIR" to a directory containing one of the above files.  If
+[0.676s]   "ament_cmake" provides a separate development package or SDK, be sure it
+[0.677s]   has been installed.
+[0.677s] 
+[0.678s] [0m
+[0.678s] -- Configuring incomplete, errors occurred!
+[0.679s] See also "/home/ubuntu/ros2_ws/src/xf_mic_asr_offline/build/xf_mic_asr_offline/CMakeFiles/CMakeOutput.log".
+[0.682s] Invoked command in '/home/ubuntu/ros2_ws/src/xf_mic_asr_offline/build/xf_mic_asr_offline' returned '1': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/ubuntu/ros2_ws/install/yolov5_ros2:/home/ubuntu/ros2_ws/install/slam:/home/ubuntu/ros2_ws/install/sdk:/home/ubuntu/ros2_ws/install/ros_robot_controller:/home/ubuntu/ros2_ws/install/peripherals:/home/ubuntu/ros2_ws/install/navigation:/home/ubuntu/ros2_ws/install/my_test:/home/ubuntu/ros2_ws/install/multi:/home/ubuntu/ros2_ws/install/mentorpi_description:/home/ubuntu/ros2_ws/install/example:/home/ubuntu/ros2_ws/install/controller:/home/ubuntu/ros2_ws/install/calibration:/home/ubuntu/ros2_ws/install/bringup:/home/ubuntu/ros2_ws/install/app /usr/bin/cmake /home/ubuntu/ros2_ws/src/xf_mic_asr_offline -DCMAKE_INSTALL_PREFIX=/home/ubuntu/ros2_ws/src/xf_mic_asr_offline/install/xf_mic_asr_offline
