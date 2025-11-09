@@ -11,7 +11,7 @@ from std_msgs.msg import String, Bool
 from rclpy.executors import MultiThreadedExecutor
 from xf_mic_asr_offline_msgs.srv import GetOfflineResult
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
-from MentorPi.src.xf_mic_asr_offline.xf_mic_asr_offline.voice_play import play, set_default_device, set_default_language
+from xf_mic_asr_offline.voice_play import play, set_default_device, set_default_language
 
 SECONDS_PER_ORDER = 5
 

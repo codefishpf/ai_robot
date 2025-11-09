@@ -12,7 +12,7 @@ echo "BOT_NAME: $BOT_NAME, BOT_IP: $BOT_IP, BOT_PASSWORD: $BOT_PASSWORD"
 set -x
 echo "输入树莓派密码..."
 sshpass -p $BOT_PASSWORD ssh $BOT_NAME@$BOT_IP "ls -lht"
-sshpass -p $BOT_PASSWORD docker cp MentorPi:/home/ubuntu/ros2_ws/src /home/pi/docker/tmp/src_copy_from_pi
-sshpass -p $BOT_PASSWORD scp -r $BOT_NAME@$BOT_IP:/home/pi/docker/tmp/src_copy_from_pi $HOME/src/ai_robot/MentorPi/
+sshpass -p $BOT_PASSWORD docker cp MentorPi:/home/ubuntu/ros2_ws/src /home/pi/docker/tmp/src_copy_from_pi/
+sshpass -p $BOT_PASSWORD scp -r $BOT_NAME@$BOT_IP:/home/pi/docker/tmp/src_copy_from_pi/src $HOME/src/ai_robot/MentorPi/src_copy_from_pi/
 exit
 echo "done"
