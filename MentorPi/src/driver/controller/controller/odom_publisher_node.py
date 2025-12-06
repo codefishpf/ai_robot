@@ -10,7 +10,7 @@ from rclpy.node import Node
 from std_srvs.srv import Trigger
 from nav_msgs.msg import Odometry
 from controller import ackermann, mecanum
-from ros_robot_controller_msgs.msg import MotorsState, SetPWMServoState, PWMServoState
+from ros_robot_controller_msgs.msg import MotorsState, SetPWMServoState, PWMServoState, WheelSpeeds
 from geometry_msgs.msg import Pose2D, Pose, Twist, PoseWithCovarianceStamped, TransformStamped
 
 ODOM_POSE_COVARIANCE = list(map(float, 
@@ -78,6 +78,10 @@ class Controller(Node):
         self.linear_x = 0.0
         self.linear_y = 0.0
         self.angular_z = 0.0
+        # speed from wheel speed
+        self.linear_x_real = 0.0
+        self.linear_y_real = 0.0
+        self.angular_z_real = 0.0
         self.pose_yaw = 0
         self.last_time = None
         self.current_time = None
@@ -95,10 +99,12 @@ class Controller(Node):
         self.declare_parameter('linear_correction_factor_tank', 0.52)
         self.declare_parameter('angular_correction_factor', 1.00)
         self.declare_parameter('machine_type', os.environ['MACHINE_TYPE'])
+        self.declare_parameter('use_wheel_speeds', True)
         
         self.pub_odom_topic = self.get_parameter('pub_odom_topic').value
         self.base_frame_id = self.get_parameter('base_frame_id').value
         self.odom_frame_id = self.get_parameter('odom_frame_id').value
+        self.use_wheel_speeds = self.get_parameter('use_wheel_speeds').value
         
         #self.machine_type = os.environ.get('MACHINE_TYPE', 'MentorPi_Mecanum')
         self.machine_type = self.get_parameter('machine_type').value
@@ -133,6 +139,7 @@ class Controller(Node):
         self.create_subscription(Twist, 'controller/cmd_vel', self.cmd_vel_callback, 1)
         #self.create_subscription(Twist, '/app/cmd_vel', self.acker_cmd_vel_callback, 1)
         self.create_subscription(Twist, 'cmd_vel', self.app_cmd_vel_callback, 1)
+        self.subscription = self.create_subscription(WheelSpeeds, "/ros_robot_controller/wheel_speeds", self.wheel_speeds_callback, 1)
         self.create_service(Trigger, 'controller/load_calibrate_param', self.load_calibrate_param)
         self.create_service(Trigger, '~/init_finish', self.get_node_state)
         self.get_logger().info('\033[1;32m%s\033[0m' % 'start')
@@ -230,6 +237,9 @@ class Controller(Node):
                 speeds = self.ackermann.set_velocity(self.linear_x, self.angular_z)
                 self.motor_pub.publish(speeds[1])
 
+    def wheel_speeds_callback(self, msg):
+        self.linear_x_real, self.angular_z_real = self.mecanum.get_velocity(msg.wheel_speed_rps)
+
     def cal_odom_fun(self):
         while True:
             self.current_time = time.time()
@@ -240,9 +250,22 @@ class Controller(Node):
 
             self.odom.header.stamp = self.clock.now().to_msg()
             
-            delta_x = self.linear_x * self.dt * math.cos(self.pose_yaw)
-            delta_y = self.linear_x * self.dt * math.sin(self.pose_yaw)
-            delta_yaw = self.angular_z * self.dt
+            # Choose speed from cmd or from wheel speeds.
+            linear_x = 0
+            linear_y = 0
+            angular_z = 0
+            if self.use_wheel_speeds:
+                linear_x = self.linear_x_real
+                linear_y = self.linear_y_real
+                angular_z = self.angular_z_real
+            else:
+                linear_x = self.linear_x
+                linear_y = self.linear_y
+                angular_z = self.angular_z
+            
+            delta_x = linear_x * self.dt * math.cos(self.pose_yaw)
+            delta_y = linear_x * self.dt * math.sin(self.pose_yaw)
+            delta_yaw = angular_z * self.dt
 
             self.x += delta_x
             self.y += delta_y
@@ -251,11 +274,11 @@ class Controller(Node):
             self.odom.pose.pose.position.x = self.linear_factor * self.x
             self.odom.pose.pose.position.y = self.linear_factor * self.y
             self.odom.pose.pose.orientation = rpy2qua(0.0, 0.0, self.pose_yaw)
-            self.odom.twist.twist.linear.x = self.linear_x
-            self.odom.twist.twist.linear.y = self.linear_y
-            self.odom.twist.twist.angular.z = self.angular_z
+            self.odom.twist.twist.linear.x = linear_x
+            self.odom.twist.twist.linear.y = linear_y
+            self.odom.twist.twist.angular.z = angular_z
 
-            if self.linear_x == 0 and self.linear_y == 0 and self.angular_z == 0:
+            if linear_x == 0 and linear_y == 0 and angular_z == 0:
                 self.odom.pose.covariance = ODOM_POSE_COVARIANCE_STOP
                 self.odom.twist.covariance = ODOM_TWIST_COVARIANCE_STOP
             else:

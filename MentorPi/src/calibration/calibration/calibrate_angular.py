@@ -91,8 +91,7 @@ class CalibrateAngular(Node):
             move_cmd = Twist()
             if self.start_test:
                 # Get the current rotation angle from tf
-                # TODO: this is wrong, but right in practise.
-                original_angle = degrees(self.get_odom_angle())
+                original_angle = self.get_odom_angle()
 
                 # Compute how far we have gone since the last measurement
                 delta_angle = self.odom_angular_scale_correction * normalize_angle(original_angle - self.last_angle)
