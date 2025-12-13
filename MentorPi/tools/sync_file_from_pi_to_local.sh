@@ -1,5 +1,4 @@
 #!/bin/bash
-# sync src code from local to pi
 
 # 注意先将以下参数（机器人的name，ip，密码）写入.bashrc或.zshrc
 # BOT_NAME='pi'
