@@ -13,7 +13,7 @@ from xf_mic_asr_offline_msgs.srv import GetOfflineResult
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from xf_mic_asr_offline.voice_play import play, set_default_device, set_default_language
 
-SECONDS_PER_ORDER = 5
+SECONDS_PER_ORDER = 10
 
 
 class ASRNode(Node):
@@ -39,7 +39,8 @@ class ASRNode(Node):
         self.awake_flag = False
         self.recognize_fail_count = 0
         self.recognize_fail_count_threshold = 15
-        self.declare_parameter('confidence', 18)
+        # self.declare_parameter('confidence', 10)
+        self.declare_parameter('confidence', 1)
         self.declare_parameter('seconds_per_order', SECONDS_PER_ORDER)
 
         self.confidence_threshold = self.get_parameter('confidence').value
@@ -71,6 +72,7 @@ class ASRNode(Node):
 
         if self.awake_flag:
             # 使用语音播放模块播放唤醒反馈
+            self.get_logger().error('playok')
             play('ok')  # 播放 ok.wav 文件
 
             count_msg = String()
@@ -119,7 +121,7 @@ class ASRNode(Node):
         get_result_msg.offline_recognise_start = 1
         get_result_msg.confidence_threshold = self.confidence_threshold
         get_result_msg.time_per_order = self.seconds_per_order
-
+        self.get_logger().info('get_result_msg request: %s' % get_result_msg)
         self.future = self.get_offline_result_client.call_async(get_result_msg)
         while rclpy.ok():
             if self.future.done() and self.future.result():

@@ -7,7 +7,8 @@ import math
 import time
 import rclpy
 import threading
-import tf_transformations  # TF坐标变换库
+import tf2_ros
+# import tf_transformations  # TF坐标变换库
 import numpy as np
 import sdk.pid as pid
 import sdk.common as common
@@ -15,6 +16,7 @@ from rclpy.node import Node
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped
 from std_msgs.msg import String, Int32
+from transforms3d.euler import quat2euler, euler2quat  # 使用 transforms3d 替代 tf_transformations
 from tf2_ros.buffer import Buffer
 from tf2_ros import TransformException
 from tf2_ros.transform_listener import TransformListener
@@ -128,88 +130,110 @@ class VoiceInteractiveNode(Node):
     def get_current_pose(self):
         self.get_logger().info('get current pose from tf')
         try:
-            now = rclpy.time.Time()  # 获取ROS系统的当前时间
-            trans = self.tf_buffer.lookup_transform(  # 监听当前时刻源坐标系到目标坐标系的坐标变换
-                'base_link', 'map', now)
-        except TransformException as ex:  # 如果坐标变换获取失败，进入异常报告
-            self.get_logger().info('Could not get transform, %s', ex)
-        pos = trans.transform.translation  # 获取位置信息
-        quat = trans.transform.rotation  # 获取姿态信息（四元数）
-        euler = tf_transformations.euler_from_quaternion(
-            [quat.x, quat.y, quat.z, quat.w])
-        self.get_logger().info(
-            'Get %s --> %s transform: [%f, %f, %f] [%f, %f, %f]' %
-            (self.source_frame, self.target_frame, pos.x, pos.y, pos.z,
-             euler[0], euler[1], euler[2]))
+            # 等待特定时间的transform
+            trans = self.tf_buffer.lookup_transform(
+                'base_footprint',
+                'map',  # 根据你的源坐标系调整
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=5.0))
+            pos = trans.transform.translation  # 获取位置信息
+            quat = trans.transform.rotation  # 获取姿态信息（四元数）
+            euler = quat2euler([quat.x, quat.y, quat.z, quat.w])
+            self.get_logger().info(
+                'Get robot pos and quat: [%f, %f, %f] [%f, %f, %f]' %
+                (pos.x, pos.y, pos.z, euler[0], euler[1], euler[2]))
+            return pos, euler
+        except tf2_ros.TimeoutException:
+            self.get_logger().error("Timeout waiting for transform")
+            return None
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException) as e:
+            self.get_logger().error(f"Transform error: {e}")
+            return None
 
     def compute_goal_pose(self):
         pose = PoseStamped()
         pose.header.stamp = self.get_clock().now().to_msg()
         pose.header.frame_id = 'map'
-        self.current_pose = self.get_current_pose()
+        self.current_pose, euler = self.get_current_pose()
         if not self.current_pose:
             self.get_logger().error('None current pose')
+            return None
         if not self.angle:
             self.get_logger().error('None angle')
+            # return None
+            # for test
+            self.angle = 0
         angle_rad = math.radians(self.angle)
-        pose.pose.position.x = self.current_pose.position.x + DEFAULT_MOVE * math.cos(
+        pose.pose.position.x = self.current_pose.x + DEFAULT_MOVE * math.cos(
             angle_rad)
-        pose.pose.position.y = self.current_pose.position.y + DEFAULT_MOVE * math.sin(
+        pose.pose.position.y = self.current_pose.y + DEFAULT_MOVE * math.sin(
             angle_rad)
         pose.pose.position.z = 0.0
         pose.pose.orientation.x = 0.0
         pose.pose.orientation.y = 0.0
-        pose.pose.orientation.z = 0.0
+        new_yaw = euler[2] + angle_rad
+        quat_list = euler2quat(euler[0], euler[1], new_yaw)
+        pose.pose.orientation.z = quat_list[2]
+        pose.pose.orientation.w = quat_list[3]
         self.get_logger().info('complete goal pose computaion: %s' % pose)
         return pose
 
+    def move_by_awake(self):
+        pass
+
     def main(self):
         while True:
+            # self.get_logger().info('Test come here')
+            # self.play('come')
+            # goal_pose = self.compute_goal_pose()
+            # self.goal_pose_pub.publish(goal_pose)
+            # time.sleep(5)
             if self.words is not None:
                 self.get_logger().info('move by words: %s' % self.words)
                 self.get_logger().info('voice angle: %s' % self.angle)
                 twist = Twist()
-                if self.words == '前进' or self.words == 'goforward':
+                if self.words == '唤醒成功(wake-up-success)':
+                    # self.move_by_awake()
+                    self.play('ok')
+                    # goal_pose = self.compute_goal_pose()
+                    # self.goal_pose_pub.publish(goal_pose)
+                elif self.words in {'过来', 'comehere'}:
+                    self.play('come')
+                    goal_pose = self.compute_goal_pose()
+                    self.goal_pose_pub.publish(goal_pose)
+                    # self.lidar_follow = True
+                elif self.words == '前进' or self.words == 'goforward':
                     self.play('go')
                     self.stop_time_stamp = time.time() + 4
                     twist.linear.x = 0.2
+                    self.mecanum_pub.publish(twist)
                 elif self.words == '后退' or self.words == 'gobackward':
                     self.play('back')
                     self.get_logger().info('Executing backward command')
                     self.stop_time_stamp = time.time() + 4
                     twist.linear.x = -0.2
+                    self.mecanum_pub.publish(twist)
                 elif self.words == '左转' or self.words == 'turnleft':
                     self.play('turn_left')
                     self.stop_time_stamp = time.time() + 2
                     twist.angular.z = 0.8
+                    self.mecanum_pub.publish(twist)
                 elif self.words == '右转' or self.words == 'turnright':
                     self.play('turn_right')
                     self.stop_time_stamp = time.time() + 2
                     twist.angular.z = -0.8
-                elif self.words == '过来' or self.words == 'comehere':
-                    self.play('come')
-                    # if 270 > self.angle > 90:
-                    #     twist.angular.z = -1.0
-                    #     self.stop_time_stamp = time.time() + abs(
-                    #         math.radians(self.angle - 90) / twist.angular.z)
-                    # else:
-                    #     twist.angular.z = 1.0
-                    #     if self.angle <= 90:
-                    #         self.angle = 90 - self.angle
-                    #     else:
-                    #         self.angle = 450 - self.angle
-                    #     self.stop_time_stamp = time.time() + abs(
-                    #         math.radians(self.angle) / twist.angular.z)
-
-                    goal_pose = self.compute_goal_pose()
-                    self.goal_pose_pub.publish(goal_pose)
-                    # self.lidar_follow = True
+                    self.mecanum_pub.publish(twist)
+                elif self.words == '转圈' or self.words == 'turnaround':
+                    self.play('ok')
+                    self.stop_time_stamp = time.time() + 5
+                    twist.angular.z = -0.8
+                    self.mecanum_pub.publish(twist)
                 elif self.words == '休眠(Sleep)':
                     time.sleep(0.01)
                 self.get_logger().info('to pub twist')
                 self.words = None
                 self.haved_stop = False
-                self.mecanum_pub.publish(twist)
                 self.get_logger().info('after pub twist')
             else:
                 time.sleep(1.0)

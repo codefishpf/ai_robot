@@ -6,6 +6,9 @@ from launch import LaunchDescription, LaunchService
 from launch.actions import IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
+# 如果单独调试语音控制机器人运用，不打开navigation，就改为True
+LAUNCH_CONTROLLER = False
+
 
 def launch_setup(context):
     compiled = os.environ['need_compile']
@@ -54,13 +57,17 @@ def launch_setup(context):
     #        }.items(),
     #    )
 
-    return [
-        controller_launch,
+    launch_list = [
+        # controller_launch,
         #            lidar_launch,
         mic_launch,
         voice_interactive_node,
         #            init_pose_launch
     ]
+    if LAUNCH_CONTROLLER:
+        launch_list.append(controller_launch)
+
+    return launch_list
 
 
 def generate_launch_description():

@@ -271,9 +271,20 @@ void SpeechProcess::business_data_t(unsigned char* record)
         	cout <<"***************write the middle voice**********" <<endl;
 #endif
             demo_xf_mic(pcm_buffer, len, 2);
+			// cout << "whole_result after demo_xf_mic: " << whole_result <<endl;
+            // demo_xf_mic(pcm_buffer, len, 2);
+			// if(whole_result == "") {
+			// 	cout <<"no whole result, continue" <<endl;
+			// 	whether_finised = 0;
+			// }
+			if (NULL == pcm_buffer)
+            {
+            	cout <<">>>>>buffer is null" <<endl;
+            }
         }
         if (whether_finised)
         {
+			// cout <<"whether_finised true" <<endl;
         	if (pcm_buffer != NULL)
         	{
         		delete[] pcm_buffer;
@@ -335,9 +346,13 @@ void SpeechProcess::get_record_sound(const char *fname)
                fwrite(record.buffer,record.chunk_size*params.channel,record.bits_per_sample,pcm_file);
             }
             business_data_t(record.buffer);
+			// cout << "whole_result after business: " << whole_result <<endl;
         }
 
-        if(record_finish) break;
+        if(record_finish)  {
+			cout << "record_finish" <<endl;
+			break;
+		}
     }
 	init_rec = 0;
 	fclose(pcm_file);
@@ -449,7 +464,7 @@ bool SpeechProcess::Get_Offline_Recognise_Result(const std::shared_ptr<xf_mic_as
 			{
 				cout<<">>>>>是否识别成功: 否 " <<endl;
 				cout<<">>>>>关键字的置信度: [" << effective_ans.effective_confidence << "] " <<endl;
-				cout<<">>>>>关键字置信度较低，文本不予显示" <<endl;
+				cout<<">>>>>关键字置信度较低，关键字识别结果: [" << effective_ans.effective_word << "] " <<endl;
 
 				response->result = "fail";
 				response->fail_reason = "low_confidence error or 11212_license_expired_error";
@@ -511,9 +526,14 @@ void SpeechProcess::run()
 	while(rclcpp::ok()){
 		if (init_rec){
 			start_time = rclcpp::Node::now();
+			// RCLCPP_INFO(this->get_logger(),"check timeout3333, init and set start time!\n");
+			// RCLCPP_INFO_STREAM(this->get_logger(),"init_rec: " << init_rec << " , whether_finised: " << whether_finised);
             while(init_rec && whether_finised != 1){
 				last_time = rclcpp::Node::now();
-				if ((last_time - start_time).seconds() > time_per_order){
+				double time_cost = (last_time - start_time).seconds();
+				// RCLCPP_INFO_STREAM(this->get_logger(),"check timeout4444, time_cost: " << time_cost);
+				if ((last_time - start_time).seconds() >= time_per_order){
+					RCLCPP_INFO(this->get_logger(),"超出离线命令词最长识别时间!\n");
 					cout <<">>>>>超出离线命令词最长识别时间" << endl;
 					whether_finised = 1;
 					break;

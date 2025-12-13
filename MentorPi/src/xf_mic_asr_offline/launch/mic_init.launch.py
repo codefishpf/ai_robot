@@ -13,13 +13,16 @@ def launch_setup(context):
     asr_language = os.getenv('ASR_LANGUAGE', 'Chinese')  # 默认使用中文
 
     if mic_type == 'xf':
-        appid = LaunchConfiguration('appid', default="'86df9570'")
-        enable_setting = LaunchConfiguration('enable_setting', default='true')
+        # app id from zhaoxi
+        # appid = LaunchConfiguration('appid', default="'86df9570'")
+        appid = LaunchConfiguration('appid', default="'3a37c212'")
+        # enable setting if you use a new wakeup word
+        enable_setting = LaunchConfiguration('enable_setting', default='false')
         confidence = LaunchConfiguration(
             'confidence', default='18'
         )  # 语音识别结果自信度阈值，取值：0-100(voice recognition result confidence ranging from 0 to 100)
         seconds_per_order = LaunchConfiguration(
-            'seconds_per_order', default='15'
+            'seconds_per_order', default='10'
         )  # 每次语音指令录音长度，单位：秒(recording length of each voice command in seconds)
         chinese_awake_words = LaunchConfiguration('chinese_awake_words',
                                                   default=AWAKE_WORD)

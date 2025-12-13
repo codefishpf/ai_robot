@@ -85,9 +85,9 @@ class CircleMic:
 
         param['content']['keyword'] = str_pinyin
         header = [0xA5, 0x01, 0x05]
-        logging.info('\033[1;32m%s\033[0m' %
-                     'setting wakeup keywords need about 30s')
-        logging.info('\033[1;32m%s\033[0m' % 'setting ......')
+        logging.error('\033[1;32m%s \033[0m' %
+                      'setting wakeup keywords need about 30s')
+        logging.error('\033[1;32m%s\033[0m' % 'setting ......')
         self.send(header, param)
         while time.time() - self.start_time < 30:
             time.sleep(0.1)
@@ -181,6 +181,7 @@ class CircleMic:
                         recv_data = self.serialHandle.read(4)
                         result = self.serialHandle.read((recv_data[1] << 8
                                                          | recv_data[0]) + 1)
+                        logging.error('result: %s' % result)
                         if b'content' in result:
                             m = re.search(self.pattern,
                                           str(result).replace('\\', ''))
@@ -231,8 +232,11 @@ class AwakeNode(Node):
         self.awake_flag_pub = self.create_publisher(Bool, '~/awake_flag', 1)
 
         self.mic = CircleMic(port, self.awake_flag_pub, self.awake_angle_pub)
+
+        self.get_logger().info('enable_setting: %s' % enable_setting)
         if enable_setting:
-            self.mic.switch_mic(mic_type)
+            switch_mic_return = self.mic.switch_mic()
+            self.get_logger().info('switch_mic_return: %s' % switch_mic_return)
             self.mic.set_wakeup_word(awake_word)
         self.get_logger().info('\033[1;32mWake up word: %s\033[0m' %
                                awake_word)
