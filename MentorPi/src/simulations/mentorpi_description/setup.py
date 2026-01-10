@@ -15,6 +15,7 @@ setup(
         (os.path.join('share', package_name, 'urdf'), glob(os.path.join('urdf', '*.*'))),
         (os.path.join('share', package_name, 'rviz'), glob(os.path.join('rviz', '*.*'))),
         (os.path.join('share', package_name, 'meshes/acker'), glob(os.path.join('meshes/acker', '*.*'))),
+        (os.path.join('share', package_name, 'meshes/ai_robot'), glob(os.path.join('meshes/ai_robot', '*.*'))),
         (os.path.join('share', package_name, 'meshes/mecanum'), glob(os.path.join('meshes/mecanum', '*.*'))),
 
     ],

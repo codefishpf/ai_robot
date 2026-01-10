@@ -351,6 +351,8 @@ class RosRobotController(Node):
                 msg.min_range = 0.02      #  2 cm from sensor specification
                 msg.max_range = 4.0       #  4 m from sensor specification
                 msg.range = data / 1000.0  # measurement value, must be float type in meters
+                if msg.range > msg.max_range:
+                    msg.range = msg.max_range
                 pub.publish(msg)
 
     def pub_wheel_speeds_data(self, pub):
