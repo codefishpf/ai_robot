@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <robot name="mecanum" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="M_PI" value="3.1415926535897931"/>
   <!-- 定义黑色材质 -->
   <material name="black">
     <color rgba="0 0 0 1"/>
@@ -27,7 +28,7 @@
       <inertia ixx="9.92047502462735E-05" ixy="3.20099144678921E-08" ixz="1.15869166655817E-05" iyy="0.000292461515602123" iyz="-2.92890751882614E-08" izz="0.000367604260834833"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0.050001 0"/>
       <geometry>
         <mesh filename="package://mentorpi_description/meshes/ai_robot/Chassis.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -50,7 +51,7 @@
       <inertia ixx="1.43718505980935E-05" ixy="1.24779390700312E-07" ixz="1.29836475580818E-08" iyy="1.65912768335363E-06" iyz="2.28291474116005E-08" izz="1.45615925671284E-05"/>
     </inertial>
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 0.01"/>
       <geometry>
         <mesh filename="package://mentorpi_description/meshes/mecanum/cam_Link.STL"/>
       </geometry>
@@ -66,7 +67,7 @@
     </collision>
   </link>
   <joint name="cam_Joint" type="fixed">
-    <origin rpy="0 0 0" xyz="0.2 -0.06 0.1"/>
+    <origin rpy="0 0 0" xyz="0.2 0 0.10"/>
     <parent link="base_link"/>
     <child link="depth_cam"/>
     <axis xyz="0 0 0"/>
@@ -75,20 +76,20 @@
     <visual>
       <origin rpy="0 ${M_PI/2} 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder radius="0.015" length="0.01"/> <!-- 圆柱体表示 -->
+        <cylinder radius="0.015" length="0.01"/> <!-- ????? -->
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 ${M_PI/2} 0" xyz="0 0 0"/>
       <geometry>
-        <sphere radius="0.015"/> <!-- 简化碰撞模型 -->
+        <sphere radius="0.015"/> <!-- ?????? -->
       </geometry>
     </collision>
   </link>
   <joint name="ultrasonic_joint" type="fixed">
     <parent link="base_link"/>
     <child link="ultrasonic_link"/>
-    <origin xyz="0.2 -0.03 0.05" rpy="0 0 0"/>
+    <origin xyz="0.2 0 0.05" rpy="0 0 0"/>
   </joint>
   
 </robot>
